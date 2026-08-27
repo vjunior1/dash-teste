@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard de Metas de Inscrições | UNIASSELVI</title>
+  <link rel="stylesheet" href="style_inscricoes.css">
+</head>
+
+<body>
+
+  <header class="dash-topbar">
+    <a href="index.html" class="dash-topbar-btn">💳 Meta Pagamentos</a>
+    <a href="inscricoes.html" class="dash-topbar-btn dash-topbar-btn--active">📋 Meta Inscrições</a>
+  </header>
+
+  <main class="page">
+
+    <section class="panel panel--top-dashboard">
+
+      <div class="panel-bg-text">UNIASSELVI</div>
+
+      <!-- Header do painel -->
+      <div class="panel-header">
+        <div class="brand">
+          <span class="brand-icon">📊</span>
+          <div class="brand-text">
+            <h1>Inscrições & Matrículas</h1>
+            <p class="brand-sub">Monitoramento em tempo real do volume de inscrições, matrículas e metas de captação.
+            </p>
+          </div>
+        </div>
+
+        <div class="update-wrapper">
+          <div class="timestamp-badge">
+            <span class="status-dot" id="statusDot"></span>
+            <span class="timestamp-label">Atualizado às:</span>
+            <span class="timestamp-value" id="statusText">--:--</span>
+          </div>
+          <button class="refresh-btn" id="refreshBtn">
+            <span class="refresh-icon">⟳</span>
+            Atualizar dados
+          </button>
+        </div>
+      </div>
+
+      <!-- KPIs: Inscrições e Matrículas -->
+      <div class="kpi-duplo">
+
+        <div class="kpi-linha">
+          <span class="kpi-row-label">Inscrições</span>
+          <div class="kpi-vsep"></div>
+
+          <div class="kpi-volume">
+            <span class="val" id="val-inscritos-total">0</span>
+            <span class="lbl">Total de inscritos</span>
+          </div>
+
+          <div class="kpi-vsep"></div>
+
+          <div class="kpi-group">
+            <div class="kpi-group-title">Meta Móvel</div>
+            <div class="kpi-group-inner">
+              <div class="kpi-stat">
+                <span class="val" id="val-insc-movel-esperado">0</span>
+                <span class="lbl">Esperado</span>
+              </div>
+              <div class="kpi-stat">
+                <span class="val" id="val-insc-movel-pct">0,00%</span>
+                <span class="lbl">Atingido</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="kpi-vsep"></div>
+
+          <div class="kpi-group">
+            <div class="kpi-group-title">Meta Edital</div>
+            <div class="kpi-group-inner">
+              <div class="kpi-stat">
+                <span class="val" id="val-insc-edital-alvo">0</span>
+                <span class="lbl">Alvo</span>
+              </div>
+              <div class="kpi-stat">
+                <span class="val" id="val-insc-edital-pct">0,00%</span>
+                <span class="lbl">Progresso</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="kpi-linha">
+          <span class="kpi-row-label">Matrículas</span>
+          <div class="kpi-vsep"></div>
+
+          <div class="kpi-volume">
+            <span class="val" id="val-matriculas-total">0</span>
+            <span class="lbl">Total de matriculados</span>
+          </div>
+
+          <div class="kpi-vsep"></div>
+
+          <div class="kpi-group">
+            <div class="kpi-group-title">Meta Móvel</div>
+            <div class="kpi-group-inner">
+              <div class="kpi-stat">
+                <span class="val" id="val-matr-movel-esperado">0</span>
+                <span class="lbl">Esperado</span>
+              </div>
+              <div class="kpi-stat">
+                <span class="val" id="val-matr-movel-pct">0,00%</span>
+                <span class="lbl">Atingido</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="kpi-vsep"></div>
+
+          <div class="kpi-group">
+            <div class="kpi-group-title">Meta Edital</div>
+            <div class="kpi-group-inner">
+              <div class="kpi-stat">
+                <span class="val" id="val-matr-edital-alvo">0</span>
+                <span class="lbl">Alvo</span>
+              </div>
+              <div class="kpi-stat">
+                <span class="val" id="val-matr-edital-pct">0,00%</span>
+                <span class="lbl">Progresso</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <section class="panel panel--carteiras" style="margin-top: 1.5rem;">
+
+      <div class="panel-bg-text">CARTEIRAS</div>
+
+      <div class="panel-header" style="margin-bottom: 1.2rem;">
+        <div class="brand">
+          <span class="brand-icon">🗂️</span>
+          <div class="brand-text">
+            <h1>Carteiras & Gerências</h1>
+            <p class="brand-sub">Inscrições e matrículas por carteira comercial e diretoria de operações.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARTEIRAS -->
+      <div class="cg-section-label">Carteiras</div>
+      <div class="cg-grid" id="grid-carteiras"></div>
+
+      <!-- GERÊNCIAS -->
+      <div class="cg-section-label" style="margin-top: 1.6rem;">Gerências de Operações</div>
+      <div class="cg-grid" id="grid-gerencias"></div>
+
+    </section>
+
+    <section class="panel panel--insights" style="margin-top: 1.5rem;">
+      <div class="insights-header">
+        <span class="insights-lamp">💡</span>
+        <h2>Insights dos Polos</h2>
+        <p>Análise de pontos positivos e possíveis pontos de melhoria.</p>
+        <div class="insights-divider"><span class="dot"></span><span class="line"></span><span class="dot"></span></div>
+      </div>
+
+      <div class="insights-grid">
+        <div class="insights-col insights-col--positivo">
+          <div class="insights-col-title"><span>🏆</span> Destaques Positivos</div>
+          <div id="insights-positivos-list"></div>
+        </div>
+
+        <div class="insights-col insights-col--melhoria">
+          <div class="insights-col-title"><span>⚠️</span> Pontos de Melhoria</div>
+          <div id="insights-melhoria-list"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="script-inscricoes.js"></script>
+</body>
+
+</html>

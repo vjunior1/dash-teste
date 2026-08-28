@@ -155,7 +155,7 @@
       <div class="cg-grid" id="grid-carteiras"></div>
 
       <!-- GERÊNCIAS -->
-      <div class="cg-section-label" style="margin-top: 1.6rem;">Gerências de Operações</div>
+      <div class="cg-section-label" style="margin-top: 1.6rem;">DIRETORIA DE Operações</div>
       <div class="cg-grid" id="grid-gerencias"></div>
 
     </section>
@@ -166,6 +166,22 @@
         <h2>Insights dos Polos</h2>
         <p>Análise de pontos positivos e possíveis pontos de melhoria.</p>
         <div class="insights-divider"><span class="dot"></span><span class="line"></span><span class="dot"></span></div>
+      </div>
+
+      <div class="filter-bar" style="margin-bottom: 1.2rem;">
+        <div class="uf-dropdown" id="insightsCarteiraDropdown">
+          <button type="button" class="uf-dropdown-btn" id="insightsCarteiraBtn">
+            <span id="insightsCarteiraLabel">Todas as carteiras</span>
+            <span class="uf-dropdown-arrow">▾</span>
+          </button>
+          <div class="uf-dropdown-panel" id="insightsCarteiraPanel">
+            <div class="uf-dropdown-actions">
+              <button type="button" class="uf-dropdown-action" id="insightsCarteiraSelectAll">Selecionar todos</button>
+              <button type="button" class="uf-dropdown-action" id="insightsCarteiraClearAll">Limpar</button>
+            </div>
+            <div class="uf-chips-wrapper" id="insights-carteira-options"></div>
+          </div>
+        </div>
       </div>
 
       <div class="insights-grid">
@@ -180,6 +196,141 @@
         </div>
       </div>
     </section>
+
+    <section class="panel panel--regioes" style="margin-top: 1.5rem;">
+
+      <div class="panel-bg-text">REGIÕES</div>
+
+      <div class="panel-header" style="margin-bottom: 1.2rem;">
+        <div class="brand">
+          <span class="brand-icon">🌎</span>
+          <div class="brand-text">
+            <h1>Regiões</h1>
+            <p class="brand-sub">Inscrições e matrículas consolidadas por região geográfica.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-bar" style="margin-bottom: 1.2rem;">
+        <div class="uf-dropdown" id="regiaoCarteiraDropdown">
+          <button type="button" class="uf-dropdown-btn" id="regiaoCarteiraBtn">
+            <span id="regiaoCarteiraLabel">Todas as carteiras</span>
+            <span class="uf-dropdown-arrow">▾</span>
+          </button>
+          <div class="uf-dropdown-panel" id="regiaoCarteiraPanel">
+            <div class="uf-dropdown-actions">
+              <button type="button" class="uf-dropdown-action" id="regiaoCarteiraSelectAll">Selecionar
+                todos</button>
+              <button type="button" class="uf-dropdown-action" id="regiaoCarteiraClearAll">Limpar</button>
+            </div>
+            <div class="uf-chips-wrapper" id="regiao-carteira-options"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cg-grid" id="grid-regioes"></div>
+
+    </section>
+
+    <section class="panel panel--estados" style="margin-top: 1.5rem;">
+
+      <div class="panel-bg-text">ESTADOS</div>
+
+      <div class="panel-header" style="margin-bottom: 1.2rem;">
+        <div class="brand">
+          <span class="brand-icon">🗺️</span>
+          <div class="brand-text">
+            <h1>Estado</h1>
+            <p class="brand-sub">Inscrições e matrículas consolidadas por UF.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <input type="text" id="estados-search" class="filter-search" placeholder="Buscar por UF (ex: SC)">
+
+        <div class="uf-dropdown" id="ufDropdown">
+          <button type="button" class="uf-dropdown-btn" id="ufDropdownBtn">
+            <span id="ufDropdownLabel">Filtrar por UF</span>
+            <span class="uf-dropdown-arrow">▾</span>
+          </button>
+
+          <div class="uf-dropdown-panel" id="ufDropdownPanel">
+            <div class="uf-dropdown-actions">
+              <button type="button" class="uf-dropdown-action" id="ufSelectAll">Selecionar todos</button>
+              <button type="button" class="uf-dropdown-action" id="ufClearAll">Limpar</button>
+            </div>
+            <div class="uf-chips-wrapper" id="estados-checkboxes"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="scroll-container">
+        <div class="cg-grid" id="grid-estados"></div>
+      </div>
+
+    </section>
+
+    <section class="panel panel--polos-detalhe" style="margin-top: 1.5rem;">
+
+      <div class="panel-bg-text">POLOS</div>
+
+      <div class="panel-header" style="margin-bottom: 1.2rem;">
+        <div class="brand">
+          <span class="brand-icon">🏫</span>
+          <div class="brand-text">
+            <h1>Visão Detalhada dos Polos</h1>
+            <p class="brand-sub">Consulta detalhada dos polos e suas respectivas informações.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-bar filter-bar--polos">
+        <input type="text" id="polos-search" class="filter-search filter-search--grow"
+          placeholder="Buscar por polo, carteira, analista...">
+
+        <div class="uf-dropdown" id="polosCarteiraDropdown">
+          <button type="button" class="uf-dropdown-btn" id="polosCarteiraBtn">
+            <span id="polosCarteiraLabel">Todas as carteiras</span>
+            <span class="uf-dropdown-arrow">▾</span>
+          </button>
+          <div class="uf-dropdown-panel" id="polosCarteiraPanel">
+            <div class="uf-dropdown-actions">
+              <button type="button" class="uf-dropdown-action" id="carteiraSelectAll">Selecionar todos</button>
+              <button type="button" class="uf-dropdown-action" id="carteiraClearAll">Limpar</button>
+            </div>
+            <div class="uf-chips-wrapper" id="polos-carteira-options"></div>
+          </div>
+        </div>
+
+        <button type="button" class="filter-btn" id="polosClearBtn">Limpar</button>
+
+        <button type="button" class="filter-btn-export" id="polosExportBtn">
+          <span class="filter-btn-export-icon">⬇</span>
+          Exportar Excel (<span id="polosExportCount">0</span>)
+        </button>
+      </div>
+
+      <div class="scroll-container">
+        <table class="polos-table">
+          <thead>
+            <tr>
+              <th class="th-base">Polo</th>
+              <th class="th-base">Carteira</th>
+              <th class="th-sub th-sub--insc-start">Inscritos</th>
+              <th class="th-sub th-sub--insc">Meta Móvel</th>
+              <th class="th-sub th-sub--insc-end">% Meta Móvel</th>
+              <th class="th-sub th-sub--matr-start">Matrículas</th>
+              <th class="th-sub th-sub--matr">Meta Móvel</th>
+              <th class="th-sub th-sub--matr-end">% Meta Móvel</th>
+            </tr>
+          </thead>
+          <tbody id="polos-table-body"></tbody>
+        </table>
+      </div>
+
+    </section>
+
 
   </main>
 

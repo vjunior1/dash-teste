@@ -823,6 +823,17 @@ body {
   gap: 0.75rem;
 }
 
+.filter-bar--estados {
+  justify-content: space-between;
+}
+
+.filter-bar-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
 /* ===== Dropdown de UFs ===== */
 .uf-dropdown {
   position: relative;
@@ -1103,3 +1114,4 @@ body {
 .panel--regioes .filter-bar {
   overflow: visible;
 }
+

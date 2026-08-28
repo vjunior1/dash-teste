@@ -245,42 +245,61 @@
           </div>
         </div>
       </div>
+      <div class="filter-bar filter-bar--estados">
+        <div class="filter-bar-left">
+          <input type="text" id="estados-search" class="filter-search" placeholder="Buscar por UF (ex: SC)">
 
-      <div class="filter-bar">
-        <input type="text" id="estados-search" class="filter-search" placeholder="Buscar por UF (ex: SC)">
-
-        <div class="uf-dropdown" id="estadosCarteiraDropdown">
-          <button type="button" class="uf-dropdown-btn" id="estadosCarteiraBtn">
-            <span id="estadosCarteiraLabel">Todas as carteiras</span>
-            <span class="uf-dropdown-arrow">▾</span>
-          </button>
-          <div class="uf-dropdown-panel" id="estadosCarteiraPanel">
-            <div class="uf-dropdown-actions">
-              <button type="button" class="uf-dropdown-action" id="estadosCarteiraSelectAll">Selecionar todos</button>
-              <button type="button" class="uf-dropdown-action" id="estadosCarteiraClearAll">Limpar</button>
+          <div class="uf-dropdown" id="estadosCarteiraDropdown">
+            <button type="button" class="uf-dropdown-btn" id="estadosCarteiraBtn">
+              <span id="estadosCarteiraLabel">Todas as carteiras</span>
+              <span class="uf-dropdown-arrow">▾</span>
+            </button>
+            <div class="uf-dropdown-panel" id="estadosCarteiraPanel">
+              <div class="uf-dropdown-actions">
+                <button type="button" class="uf-dropdown-action" id="estadosCarteiraSelectAll">Selecionar todos</button>
+                <button type="button" class="uf-dropdown-action" id="estadosCarteiraClearAll">Limpar</button>
+              </div>
+              <div class="uf-chips-wrapper" id="estados-carteira-options"></div>
             </div>
-            <div class="uf-chips-wrapper" id="estados-carteira-options"></div>
+          </div>
+
+          <div class="uf-dropdown" id="ufDropdown">
+            <button type="button" class="uf-dropdown-btn" id="ufDropdownBtn">
+              <span id="ufDropdownLabel">Filtrar por UF</span>
+              <span class="uf-dropdown-arrow">▾</span>
+            </button>
+
+            <div class="uf-dropdown-panel" id="ufDropdownPanel">
+              <div class="uf-dropdown-actions">
+                <button type="button" class="uf-dropdown-action" id="ufSelectAll">Selecionar todos</button>
+                <button type="button" class="uf-dropdown-action" id="ufClearAll">Limpar</button>
+              </div>
+              <div class="uf-chips-wrapper" id="estados-checkboxes"></div>
+            </div>
           </div>
         </div>
 
-        <div class="uf-dropdown" id="ufDropdown">
-          <button type="button" class="uf-dropdown-btn" id="ufDropdownBtn">
-            <span id="ufDropdownLabel">Filtrar por UF</span>
-            <span class="uf-dropdown-arrow">▾</span>
-          </button>
-
-          <div class="uf-dropdown-panel" id="ufDropdownPanel">
-            <div class="uf-dropdown-actions">
-              <button type="button" class="uf-dropdown-action" id="ufSelectAll">Selecionar todos</button>
-              <button type="button" class="uf-dropdown-action" id="ufClearAll">Limpar</button>
-            </div>
-            <div class="uf-chips-wrapper" id="estados-checkboxes"></div>
-          </div>
-        </div>
+        <button type="button" class="filter-btn-export" id="estadosExportBtn">
+          <span class="filter-btn-export-icon">⬇</span>
+          Exportar Excel (<span id="estadosExportCount">0</span>)
+        </button>
       </div>
 
       <div class="scroll-container">
-        <div class="cg-grid" id="grid-estados"></div>
+        <table class="polos-table">
+          <thead>
+            <tr>
+              <th class="th-base">Estado</th>
+              <th class="th-sub th-sub--insc-start">Inscritos</th>
+              <th class="th-sub th-sub--insc">Meta Móvel</th>
+              <th class="th-sub th-sub--insc-end">% Meta Móvel</th>
+              <th class="th-sub th-sub--matr-start">Matrículas</th>
+              <th class="th-sub th-sub--matr">Meta Móvel</th>
+              <th class="th-sub th-sub--matr-end">% Meta Móvel</th>
+            </tr>
+          </thead>
+          <tbody id="estados-table-body"></tbody>
+        </table>
       </div>
 
     </section>

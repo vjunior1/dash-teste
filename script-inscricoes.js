@@ -299,6 +299,7 @@ let insightsCarteirasSelecionadas = new Set();
 let insightsPolosData = [];
 let estadosPolosData = [];
 let estadosCarteirasSelecionadas = new Set();
+let estadosTableData = [];
 
 
 function renderRegioesFiltradas() {
@@ -498,28 +499,33 @@ function renderEstadosFiltrados() {
 
     const estadosOrdenados = Object.keys(estadosMap).sort((a, b) => a.localeCompare(b));
 
-    let htmlCards = '';
+    estadosTableData = [];
+    let htmlRows = '';
     let htmlChips = '';
 
     for (const uf of estadosOrdenados) {
         const e = estadosMap[uf];
         if (e.inscritos === 0 && e.matriculados === 0) continue;
 
-        const syntheticRow = [
-            null,
-            e.inscritos,
-            e.metaMovelInsc,
-            toBR(pctOrZero(e.inscritos, e.metaMovelInsc)),
-            e.metaEditalInsc,
-            toBR(pctOrZero(e.inscritos, e.metaEditalInsc)),
-            e.matriculados,
-            e.metaMovelMatr,
-            toBR(pctOrZero(e.matriculados, e.metaMovelMatr)),
-            e.metaEditalMatr,
-            toBR(pctOrZero(e.matriculados, e.metaEditalMatr)),
-        ];
+        const pctMovelInsc = pctOrZero(e.inscritos, e.metaMovelInsc);
+        const pctMovelMatr = pctOrZero(e.matriculados, e.metaMovelMatr);
 
-        htmlCards += `<div class="filter-item" data-uf="${uf}">${buildCGCard(syntheticRow, uf)}</div>`;
+        estadosTableData.push({
+            uf, inscritos: e.inscritos, metaMovelInsc: e.metaMovelInsc, pctMovelInsc,
+            matriculados: e.matriculados, metaMovelMatr: e.metaMovelMatr, pctMovelMatr,
+        });
+
+        htmlRows += `
+        <tr data-uf="${uf}">
+        <td class="polos-nome">${uf}</td>
+        <td class="num td-insc-start">${formatBRInteger(e.inscritos)}</td>
+        <td class="td-insc">${formatBRInteger(e.metaMovelInsc)}</td>
+        <td class="td-insc-end ${getPctColorClass(pctMovelInsc)}">${formatBRPctDirect(pctMovelInsc)}</td>
+        <td class="num td-matr-start">${formatBRInteger(e.matriculados)}</td>
+        <td class="td-matr">${formatBRInteger(e.metaMovelMatr)}</td>
+        <td class="td-matr-end ${getPctColorClass(pctMovelMatr)}">${formatBRPctDirect(pctMovelMatr)}</td>
+        </tr>`;
+
         htmlChips += `
           <label class="uf-chip">
             <input type="checkbox" value="${uf}" class="uf-checkbox">
@@ -527,7 +533,7 @@ function renderEstadosFiltrados() {
           </label>`;
     }
 
-    document.getElementById('grid-estados').innerHTML = htmlCards || '<p style="color:var(--muted)">Nenhum estado com dados para a seleção.</p>';
+    document.getElementById('estados-table-body').innerHTML = htmlRows || '<tr><td colspan="7" class="polos-empty">Nenhum estado com dados para a seleção.</td></tr>';
     document.getElementById('estados-checkboxes').innerHTML = htmlChips;
 
     document.querySelectorAll('.uf-checkbox').forEach(cb => cb.addEventListener('change', () => {
@@ -590,6 +596,9 @@ function processAndRenderEstados(polosData) {
     document.addEventListener('click', () => dropdown.classList.remove('open'));
 
     document.getElementById('estados-search').addEventListener('input', filterEstados);
+    document.getElementById('estadosExportBtn').addEventListener('click', () => {
+        exportPolosCSV(filterEstados(), 'polos_por_estado');
+    });
 
     renderEstadosFiltrados();
     initUfDropdown();
@@ -598,13 +607,20 @@ function processAndRenderEstados(polosData) {
 function filterEstados() {
     const termo = (document.getElementById('estados-search').value || '').trim().toUpperCase();
     const marcados = Array.from(document.querySelectorAll('.uf-checkbox:checked')).map(cb => cb.value);
+    const visiveis = [];
 
-    document.querySelectorAll('#grid-estados .filter-item').forEach(item => {
+    document.querySelectorAll('#estados-table-body tr[data-uf]').forEach(item => {
         const uf = item.getAttribute('data-uf');
         const passaTexto = !termo || uf.includes(termo);
         const passaCheckbox = marcados.length === 0 || marcados.includes(uf);
-        item.style.display = (passaTexto && passaCheckbox) ? '' : 'none';
+        const visivel = passaTexto && passaCheckbox;
+        item.style.display = visivel ? '' : 'none';
+        if (visivel) visiveis.push(uf);
     });
+
+    const polosDasUfs = getPolosDosEstadosFiltrados(visiveis);
+    document.getElementById('estadosExportCount').innerText = polosDasUfs.length;
+    return polosDasUfs;
 }
 
 // ==========================================
@@ -959,7 +975,7 @@ function filterPolosTable() {
     return filtrados;
 }
 
-function exportPolosCSV(items) {
+function exportPolosCSV(items, nomeArquivo = 'polos_inscricoes') {
     const header = ['Polo', 'Carteira', 'Estado', 'Região', 'Parceiro', 'Analista', 'Inscritos', 'Meta Móvel Insc', '% Meta Móvel Insc', 'Matriculados', 'Meta Móvel Matr', '% Meta Móvel Matr', 'Meta Edital Insc', '% Meta Edital Insc', 'Meta Edital Matr', '% Meta Edital Matr'];
     const linhas = items.map(item => [
         item.polo, item.carteira, item.estado, item.regiao, item.parceiro, item.analista,
@@ -977,7 +993,29 @@ function exportPolosCSV(items) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `polos_inscricoes_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `${nomeArquivo}_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function exportEstadosCSV(items) {
+    const header = ['Estado', 'Inscritos', 'Meta Móvel Insc', '% Meta Móvel Insc', 'Matriculados', 'Meta Móvel Matr', '% Meta Móvel Matr'];
+    const linhas = items.map(item => [
+        item.uf, item.inscritos, item.metaMovelInsc, formatBRPctDirect(item.pctMovelInsc),
+        item.matriculados, item.metaMovelMatr, formatBRPctDirect(item.pctMovelMatr)
+    ]);
+
+    const csv = [header, ...linhas]
+        .map(cols => cols.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';'))
+        .join('\r\n');
+
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `estados_inscricoes_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -991,6 +1029,21 @@ function isLinhaPoloValida(row) {
     if (nome.includes('#N/D')) return false;                     // célula sem valor no Sheets
     if ((row[5] || '').toString().includes('#N/D')) return false; // carteira inválida
     return true;
+}
+
+function getPolosDosEstadosFiltrados(ufsVisiveis) {
+    const carteiraFiltroAtivo = estadosCarteirasSelecionadas.size > 0;
+
+    return estadosPolosData
+        .filter(isLinhaPoloValida)
+        .map(buildPolosRow)
+        .filter(item => {
+            const estado = (item.estado || '').toString().trim().toUpperCase();
+            if (!ufsVisiveis.includes(estado)) return false;
+            if (carteiraFiltroAtivo && !estadosCarteirasSelecionadas.has(item.carteira)) return false;
+            return true;
+        })
+        .sort((a, b) => a.polo.localeCompare(b.polo));
 }
 
 function processAndRenderPolosDetalhe(polosData) {

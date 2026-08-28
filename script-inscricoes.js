@@ -297,6 +297,8 @@ let regiaoPolosData = [];
 let regiaoCarteirasSelecionadas = new Set();
 let insightsCarteirasSelecionadas = new Set();
 let insightsPolosData = [];
+let estadosPolosData = [];
+let estadosCarteirasSelecionadas = new Set();
 
 
 function renderRegioesFiltradas() {
@@ -465,13 +467,15 @@ function renderRegioesFiltradas() {
 // ==========================================
 // TOTALIZADORES POR ESTADO (aba CAPTAÇÃO POLO)
 // ==========================================
-function processAndRenderEstados(polosData) {
+function renderEstadosFiltrados() {
+    const filtroAtivo = estadosCarteirasSelecionadas.size > 0;
     const estadosMap = {};
     const REGIOES_INVALIDAS = ['REGIÃO', 'ESTADO', 'UF', '#N/D', '#N/A', ''];
 
-    for (const row of polosData) {
+    for (const row of estadosPolosData) {
         const estado = (row[2] || '').toString().trim().toUpperCase();
         if (REGIOES_INVALIDAS.includes(estado)) continue;
+        if (filtroAtivo && !estadosCarteirasSelecionadas.has(extractCarteiraLimpa(row))) continue;
 
         if (!estadosMap[estado]) {
             estadosMap[estado] = {
@@ -499,6 +503,7 @@ function processAndRenderEstados(polosData) {
 
     for (const uf of estadosOrdenados) {
         const e = estadosMap[uf];
+        if (e.inscritos === 0 && e.matriculados === 0) continue;
 
         const syntheticRow = [
             null,
@@ -522,15 +527,71 @@ function processAndRenderEstados(polosData) {
           </label>`;
     }
 
-    document.getElementById('grid-estados').innerHTML = htmlCards;
+    document.getElementById('grid-estados').innerHTML = htmlCards || '<p style="color:var(--muted)">Nenhum estado com dados para a seleção.</p>';
     document.getElementById('estados-checkboxes').innerHTML = htmlChips;
 
-    document.getElementById('estados-search').addEventListener('input', filterEstados);
     document.querySelectorAll('.uf-checkbox').forEach(cb => cb.addEventListener('change', () => {
         updateUfDropdownLabel();
         filterEstados();
     }));
 
+    updateUfDropdownLabel();
+    filterEstados();
+}
+
+function processAndRenderEstados(polosData) {
+    estadosPolosData = polosData;
+
+    const carteiras = [...new Set(
+        polosData.filter(row => isLinhaPoloValida(row)).map(row => extractCarteiraLimpa(row))
+    )].sort((a, b) => a.localeCompare(b));
+
+    const optionsWrapper = document.getElementById('estados-carteira-options');
+    const carteiraLabel = document.getElementById('estadosCarteiraLabel');
+    const dropdown = document.getElementById('estadosCarteiraDropdown');
+    const btn = document.getElementById('estadosCarteiraBtn');
+
+    function updateLabel() {
+        carteiraLabel.textContent =
+            estadosCarteirasSelecionadas.size === 0 || estadosCarteirasSelecionadas.size === carteiras.length
+                ? 'Todas as carteiras'
+                : `${estadosCarteirasSelecionadas.size} carteira(s) selecionada(s)`;
+    }
+
+    function buildOptions() {
+        optionsWrapper.innerHTML = carteiras.map(c => `
+            <label class="uf-chip">
+                <input type="checkbox" value="${c}" ${estadosCarteirasSelecionadas.has(c) ? 'checked' : ''}>
+                <span>${c}</span>
+            </label>`).join('');
+
+        optionsWrapper.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', () => {
+                if (cb.checked) estadosCarteirasSelecionadas.add(cb.value);
+                else estadosCarteirasSelecionadas.delete(cb.value);
+                updateLabel();
+                renderEstadosFiltrados();
+            });
+        });
+    }
+
+    buildOptions();
+
+    document.getElementById('estadosCarteiraSelectAll').addEventListener('click', () => {
+        carteiras.forEach(c => estadosCarteirasSelecionadas.add(c));
+        buildOptions(); updateLabel(); renderEstadosFiltrados();
+    });
+    document.getElementById('estadosCarteiraClearAll').addEventListener('click', () => {
+        estadosCarteirasSelecionadas.clear();
+        buildOptions(); updateLabel(); renderEstadosFiltrados();
+    });
+
+    btn.addEventListener('click', e => { e.stopPropagation(); dropdown.classList.toggle('open'); });
+    document.addEventListener('click', () => dropdown.classList.remove('open'));
+
+    document.getElementById('estados-search').addEventListener('input', filterEstados);
+
+    renderEstadosFiltrados();
     initUfDropdown();
 }
 

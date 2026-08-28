@@ -249,6 +249,20 @@
       <div class="filter-bar">
         <input type="text" id="estados-search" class="filter-search" placeholder="Buscar por UF (ex: SC)">
 
+        <div class="uf-dropdown" id="estadosCarteiraDropdown">
+          <button type="button" class="uf-dropdown-btn" id="estadosCarteiraBtn">
+            <span id="estadosCarteiraLabel">Todas as carteiras</span>
+            <span class="uf-dropdown-arrow">▾</span>
+          </button>
+          <div class="uf-dropdown-panel" id="estadosCarteiraPanel">
+            <div class="uf-dropdown-actions">
+              <button type="button" class="uf-dropdown-action" id="estadosCarteiraSelectAll">Selecionar todos</button>
+              <button type="button" class="uf-dropdown-action" id="estadosCarteiraClearAll">Limpar</button>
+            </div>
+            <div class="uf-chips-wrapper" id="estados-carteira-options"></div>
+          </div>
+        </div>
+
         <div class="uf-dropdown" id="ufDropdown">
           <button type="button" class="uf-dropdown-btn" id="ufDropdownBtn">
             <span id="ufDropdownLabel">Filtrar por UF</span>

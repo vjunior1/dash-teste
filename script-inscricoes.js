@@ -510,21 +510,30 @@ function renderEstadosFiltrados() {
         const pctMovelInsc = pctOrZero(e.inscritos, e.metaMovelInsc);
         const pctMovelMatr = pctOrZero(e.matriculados, e.metaMovelMatr);
 
+        const pctEditalInsc = pctOrZero(e.inscritos, e.metaEditalInsc);
+        const pctEditalMatr = pctOrZero(e.matriculados, e.metaEditalMatr);
+
         estadosTableData.push({
             uf, inscritos: e.inscritos, metaMovelInsc: e.metaMovelInsc, pctMovelInsc,
+            metaEditalInsc: e.metaEditalInsc, pctEditalInsc,
             matriculados: e.matriculados, metaMovelMatr: e.metaMovelMatr, pctMovelMatr,
+            metaEditalMatr: e.metaEditalMatr, pctEditalMatr,
         });
 
         htmlRows += `
-        <tr data-uf="${uf}">
-        <td class="polos-nome">${uf}</td>
-        <td class="num td-insc-start">${formatBRInteger(e.inscritos)}</td>
-        <td class="td-insc">${formatBRInteger(e.metaMovelInsc)}</td>
-        <td class="td-insc-end ${getPctColorClass(pctMovelInsc)}">${formatBRPctDirect(pctMovelInsc)}</td>
-        <td class="num td-matr-start">${formatBRInteger(e.matriculados)}</td>
-        <td class="td-matr">${formatBRInteger(e.metaMovelMatr)}</td>
-        <td class="td-matr-end ${getPctColorClass(pctMovelMatr)}">${formatBRPctDirect(pctMovelMatr)}</td>
-        </tr>`;
+    <tr data-uf="${uf}">
+    <td class="polos-nome">${uf}</td>
+    <td class="num td-insc-start">${formatBRInteger(e.inscritos)}</td>
+    <td class="td-insc">${formatBRInteger(e.metaMovelInsc)}</td>
+    <td class="td-insc ${getPctColorClass(pctMovelInsc)}">${formatBRPctDirect(pctMovelInsc)}</td>
+    <td class="td-insc">${formatBRInteger(e.metaEditalInsc)}</td>
+    <td class="td-insc-end ${getPctColorClass(pctEditalInsc)}">${formatBRPctDirect(pctEditalInsc)}</td>
+    <td class="num td-matr-start">${formatBRInteger(e.matriculados)}</td>
+    <td class="td-matr">${formatBRInteger(e.metaMovelMatr)}</td>
+    <td class="td-matr ${getPctColorClass(pctMovelMatr)}">${formatBRPctDirect(pctMovelMatr)}</td>
+    <td class="td-matr">${formatBRInteger(e.metaEditalMatr)}</td>
+    <td class="td-matr-end ${getPctColorClass(pctEditalMatr)}">${formatBRPctDirect(pctEditalMatr)}</td>
+    </tr>`;
 
         htmlChips += `
           <label class="uf-chip">
@@ -533,7 +542,7 @@ function renderEstadosFiltrados() {
           </label>`;
     }
 
-    document.getElementById('estados-table-body').innerHTML = htmlRows || '<tr><td colspan="7" class="polos-empty">Nenhum estado com dados para a seleção.</td></tr>';
+    document.getElementById('estados-table-body').innerHTML = htmlRows || '<tr><td colspan="11" class="polos-empty">Nenhum estado com dados para a seleção.</td></tr>';
     document.getElementById('estados-checkboxes').innerHTML = htmlChips;
 
     document.querySelectorAll('.uf-checkbox').forEach(cb => cb.addEventListener('change', () => {
@@ -1001,10 +1010,12 @@ function exportPolosCSV(items, nomeArquivo = 'polos_inscricoes') {
 }
 
 function exportEstadosCSV(items) {
-    const header = ['Estado', 'Inscritos', 'Meta Móvel Insc', '% Meta Móvel Insc', 'Matriculados', 'Meta Móvel Matr', '% Meta Móvel Matr'];
+    const header = ['Estado', 'Inscritos', 'Meta Móvel Insc', '% Meta Móvel Insc', 'Meta Edital Insc', '% Meta Edital Insc', 'Matriculados', 'Meta Móvel Matr', '% Meta Móvel Matr', 'Meta Edital Matr', '% Meta Edital Matr'];
     const linhas = items.map(item => [
         item.uf, item.inscritos, item.metaMovelInsc, formatBRPctDirect(item.pctMovelInsc),
-        item.matriculados, item.metaMovelMatr, formatBRPctDirect(item.pctMovelMatr)
+        item.metaEditalInsc, formatBRPctDirect(item.pctEditalInsc),
+        item.matriculados, item.metaMovelMatr, formatBRPctDirect(item.pctMovelMatr),
+        item.metaEditalMatr, formatBRPctDirect(item.pctEditalMatr)
     ]);
 
     const csv = [header, ...linhas]

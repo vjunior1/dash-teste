@@ -1115,3 +1115,10 @@ body {
   overflow: visible;
 }
 
+/* Compactar colunas da tabela de Estados para caber os novos indicadores */
+.panel--estados .polos-table thead th,
+.panel--estados .polos-table tbody td {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  font-size: 0.8rem;
+}

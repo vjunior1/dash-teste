@@ -368,9 +368,62 @@
 
     </section>
 
+    <section class="panel panel--mapa-alerta" style="margin-top: 1.5rem;">
+
+      <div class="panel-bg-text">MAPA DE CALOR</div>
+
+      <div class="panel-header" style="margin-bottom: 1.2rem;">
+        <div class="brand">
+          <span class="brand-icon">🗺️</span>
+          <div class="brand-text">
+            <h1 id="mapaTitle">Mapa de Alerta de Inscrições</h1>
+            <p class="brand-sub" id="mapaSubtitle">Áreas destacadas em amarelo/laranja/vermelho indicam estados abaixo da Meta Móvel de Inscrição. Passe o mouse para ver os números; clique para abrir os polos por cidade.</p>
+          </div>
+        </div>
+
+        <div class="metric-toggle" id="mapaMetricToggle">
+          <button type="button" class="metric-toggle-btn active" data-metric="insc">Inscrições</button>
+          <button type="button" class="metric-toggle-btn" data-metric="matr">Matrículas</button>
+        </div>
+      </div>
+
+      <div class="band-summary" id="mapaBandSummary"></div>
+
+      <div class="map-card">
+        <div class="map-frame">
+          <svg id="mapaBrSvg" viewBox="0 0 640 622" xmlns="http://www.w3.org/2000/svg">
+            <g id="mapaStatesLayer"></g>
+          </svg>
+          <canvas id="mapaCloudCanvas" width="640" height="622"></canvas>
+          <svg id="mapaLabelsSvg" viewBox="0 0 640 622" xmlns="http://www.w3.org/2000/svg">
+            <g id="mapaLabelsLayer"></g>
+          </svg>
+        </div>
+        <p class="map-hint">Passe o mouse sobre um estado para ver os números · clique para abrir os polos por cidade</p>
+      </div>
+
+    </section>
 
   </main>
 
+  <div id="mapaTooltip"></div>
+
+  <div class="modal-backdrop" id="mapaModalBackdrop">
+    <div class="modal-panel" id="mapaModalPanel">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="mapaModalTitle">Estado</div>
+          <div class="modal-subtitle" id="mapaModalSubtitle">Polos por cidade</div>
+        </div>
+        <button class="modal-close" id="mapaModalClose" aria-label="Fechar" type="button">✕</button>
+      </div>
+      <div class="modal-summary" id="mapaModalSummary"></div>
+      <div class="modal-cities-label" id="mapaModalCitiesLabel">Polos por cidade — Inscrições</div>
+      <div class="heat-grid" id="mapaModalGrid"></div>
+    </div>
+  </div>
+
+  <script src="br_state_paths.js"></script>
   <script src="script-inscricoes.js"></script>
 </body>
 

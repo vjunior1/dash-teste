@@ -14,6 +14,23 @@
   --vermelho-alerta: #e85b4d;
   --ciano-destaque: #db990a;
   --ciano-destaque-suave: #fcc100;
+
+  /* Cartao do Mapa de Alerta (mundo visual proprio, estilo mapa meteorologico) */
+  --map-sea: #dfe9ef;
+  --map-land: #f7f8f6;
+  --map-land-hover: #eef1ec;
+  --map-border: #c3cad1;
+  --map-border-hover: #d9a800;
+  --map-text: #232a30;
+  --map-text-soft: #5b6672;
+  --map-card-shadow: rgba(15, 23, 32, 0.28);
+  --tooltip-bg: #ffffff;
+  --tooltip-border: #d7dbe0;
+  --tooltip-shadow: rgba(15, 23, 32, 0.25);
+
+  --sev-atencao: #ffc400;
+  --sev-alerta: #ff6a00;
+  --sev-critico: #e61414;
 }
 
 * {
@@ -1121,4 +1138,279 @@ body {
   padding-left: 0.5rem;
   padding-right: 0.5rem;
   font-size: 0.8rem;
+}
+
+/* ==========================================
+   Seção Mapa de Alerta (Inscrições / Matrículas)
+   ========================================== */
+
+/* ---------- Seletor Inscrições / Matrículas ---------- */
+.metric-toggle {
+  display: flex;
+  gap: 0.25rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--cinza-borda);
+  border-radius: 999px;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+.metric-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--texto-suave);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.5rem 1.1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.metric-toggle-btn:hover { color: var(--amarelo-claro); }
+
+.metric-toggle-btn.active {
+  background: var(--amarelo);
+  color: var(--preto);
+}
+
+.metric-toggle-btn.active:hover { color: var(--preto); }
+
+/* ---------- Resumo / legenda por faixa de severidade ---------- */
+.band-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1.4rem;
+  position: relative;
+  z-index: 1;
+}
+
+.band-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--cinza-borda);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--texto-suave);
+}
+
+.band-swatch { width: 13px; height: 13px; border-radius: 4px; flex-shrink: 0; }
+.band-swatch.ok { background: transparent; border: 2px solid var(--verde-ok); border-radius: 50%; }
+.band-chip strong { color: var(--texto-claro); font-variant-numeric: tabular-nums; }
+
+/* ---------- Cartão do mapa (mundo visual próprio, claro) ---------- */
+.map-card {
+  position: relative;
+  z-index: 1;
+  background: radial-gradient(circle at 30% 20%, #eef4f7 0%, var(--map-sea) 70%);
+  border-radius: 18px;
+  padding: 1.4rem 1.2rem 1.1rem;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), 0 20px 45px var(--map-card-shadow);
+}
+
+.map-frame {
+  position: relative;
+  width: 100%;
+  max-width: 540px;
+  margin: 0 auto;
+  aspect-ratio: 640 / 622;
+}
+
+.map-frame > svg,
+.map-frame > canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.map-frame > canvas { pointer-events: none; }
+#mapaCloudCanvas { filter: blur(6px); opacity: 0.98; }
+#mapaLabelsSvg { pointer-events: none; }
+
+.uf-path {
+  fill: var(--map-land);
+  stroke: var(--map-border);
+  stroke-width: 1;
+  cursor: pointer;
+  transition: fill 0.12s ease, stroke 0.12s ease, stroke-width 0.12s ease;
+}
+
+.uf-path:hover {
+  fill: var(--map-land-hover);
+  stroke: var(--map-border-hover);
+  stroke-width: 2.2;
+}
+
+.uf-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  pointer-events: none;
+  letter-spacing: 0.02em;
+  fill: var(--map-text);
+  stroke: #ffffff;
+  stroke-width: 2.4px;
+  paint-order: stroke fill;
+}
+
+.map-hint {
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--texto-suave);
+  margin-top: 0.9rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Tooltip do mapa (tema claro) ---------- */
+#mapaTooltip {
+  position: fixed;
+  pointer-events: none;
+  background: var(--tooltip-bg);
+  border: 1px solid var(--tooltip-border);
+  border-radius: 10px;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.76rem;
+  color: var(--map-text);
+  box-shadow: 0 14px 32px var(--tooltip-shadow);
+  z-index: 80;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  min-width: 195px;
+}
+
+#mapaTooltip.visible { opacity: 1; }
+#mapaTooltip .tt-title { font-weight: 800; margin-bottom: 0.35rem; font-size: 0.85rem; }
+
+#mapaTooltip .tt-badge {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+#mapaTooltip .tt-row { display: flex; justify-content: space-between; gap: 1.2rem; color: var(--map-text-soft); padding: 0.08rem 0; }
+#mapaTooltip .tt-row b { color: var(--map-text); font-variant-numeric: tabular-nums; }
+#mapaTooltip .tt-hint { margin-top: 0.5rem; padding-top: 0.4rem; border-top: 1px solid var(--tooltip-border); font-size: 0.65rem; color: var(--map-text-soft); font-style: italic; }
+
+/* ---------- Modal (drill-down por cidade, tema claro) ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 18, 12, 0.6);
+  backdrop-filter: blur(2px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 2rem 1rem;
+}
+
+.modal-backdrop.open { display: flex; }
+
+.modal-panel {
+  width: 100%;
+  max-width: 760px;
+  max-height: 84vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid var(--tooltip-border);
+  border-radius: 20px;
+  padding: 1.6rem 1.8rem 1.8rem;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4);
+  color: var(--map-text);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--tooltip-border);
+}
+
+.modal-title { font-size: 1.15rem; font-weight: 800; color: var(--map-text); }
+.modal-subtitle { font-size: 0.78rem; color: var(--map-text-soft); margin-top: 0.2rem; }
+
+.modal-close {
+  background: #f1f3f4;
+  border: 1px solid var(--tooltip-border);
+  color: var(--map-text);
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.modal-close:hover { border-color: var(--amarelo-queimado); background: #fff3d0; }
+
+.modal-summary { margin-bottom: 1.2rem; }
+
+.modal-stat {
+  background: #f4f6f5;
+  border: 1px solid var(--tooltip-border);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  max-width: 340px;
+}
+
+.modal-stat-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--map-text-soft); margin-bottom: 0.3rem; }
+.modal-stat-row { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+.modal-stat-value { font-size: 1.3rem; font-weight: 800; color: var(--map-text); font-variant-numeric: tabular-nums; }
+.modal-stat-of { font-size: 0.75rem; color: var(--map-text-soft); font-variant-numeric: tabular-nums; }
+.modal-stat-pct { font-size: 0.8rem; font-weight: 700; margin-left: auto; font-variant-numeric: tabular-nums; }
+
+.modal-cities-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--map-text-soft);
+  margin-bottom: 0.6rem;
+}
+
+.heat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 0.55rem;
+}
+
+.heat-tile {
+  border-radius: 10px;
+  padding: 0.55rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  cursor: default;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  position: relative;
+}
+
+.heat-tile:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25); z-index: 3; }
+.heat-tile-name { font-size: 0.68rem; font-weight: 700; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; opacity: 0.92; }
+.heat-tile-pct { font-size: 1.05rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.heat-tile-frac { font-size: 0.6rem; font-weight: 600; opacity: 0.85; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 760px) {
+  .panel--mapa-alerta .panel-header { flex-direction: column; }
+  .modal-summary { grid-template-columns: 1fr; }
 }

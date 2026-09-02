@@ -1136,10 +1136,380 @@ function processAndRenderPolosDetalhe(polosData) {
 }
 
 // ==========================================
+// MAPA DE ALERTA — INSCRIÇÕES / MATRÍCULAS (por estado)
+// Usa as mesmas linhas validadas da aba CAPTAÇÃO POLO (isLinhaPoloValida +
+// buildPolosRow) já usadas na Visão Detalhada dos Polos, agregadas por ESTADO.
+// Os contornos geográficos (BR_STATE_PATHS/BR_STATE_LABEL_POS/BR_STATE_BBOX)
+// vêm de br_state_paths.js — dado estático (fronteiras não mudam), separado
+// do dado da planilha (que é lido de novo a cada carregamento da página).
+// ==========================================
+const MAPA_ESTADO_NOMES = {
+    AC: 'Acre', AL: 'Alagoas', AP: 'Amapá', AM: 'Amazonas', BA: 'Bahia', CE: 'Ceará',
+    DF: 'Distrito Federal', ES: 'Espírito Santo', GO: 'Goiás', MA: 'Maranhão',
+    MT: 'Mato Grosso', MS: 'Mato Grosso do Sul', MG: 'Minas Gerais', PA: 'Pará',
+    PB: 'Paraíba', PR: 'Paraná', PE: 'Pernambuco', PI: 'Piauí', RJ: 'Rio de Janeiro',
+    RN: 'Rio Grande do Norte', RS: 'Rio Grande do Sul', RO: 'Rondônia', RR: 'Roraima',
+    SC: 'Santa Catarina', SP: 'São Paulo', SE: 'Sergipe', TO: 'Tocantins',
+};
+
+const MAPA_METRIC_META = {
+    insc: { label: 'Inscrições', singular: 'Inscritos', field: 'inscritos', metaField: 'metaInsc', pctField: 'pctInsc' },
+    matr: { label: 'Matrículas', singular: 'Matriculados', field: 'matriculados', metaField: 'metaMatr', pctField: 'pctMatr' },
+};
+let mapaMetricaAtual = 'insc';
+let mapaEstadoData = {};
+let mapaSvgConstruido = false;
+
+function mapaGetMetric(obj) {
+    const m = MAPA_METRIC_META[mapaMetricaAtual];
+    return { value: obj[m.field], meta: obj[m.metaField], pct: obj[m.pctField], singular: m.singular, label: m.label };
+}
+
+// Escala continua verde -> vermelho para os tiles de polo dentro do popup
+const MAPA_TILE_STOPS = [
+    { pct: 0, rgb: [232, 91, 77] },
+    { pct: 50, rgb: [242, 153, 74] },
+    { pct: 80, rgb: [242, 194, 0] },
+    { pct: 100, rgb: [76, 175, 80] },
+    { pct: 130, rgb: [27, 94, 32] },
+];
+function mapaHeatRGB(pct) {
+    const p = Math.max(0, Math.min(pct, 130));
+    for (let i = 0; i < MAPA_TILE_STOPS.length - 1; i++) {
+        const a = MAPA_TILE_STOPS[i], b = MAPA_TILE_STOPS[i + 1];
+        if (p >= a.pct && p <= b.pct) {
+            const t = (p - a.pct) / (b.pct - a.pct);
+            return a.rgb.map((v, idx) => Math.round(v + (b.rgb[idx] - v) * t));
+        }
+    }
+    return MAPA_TILE_STOPS[MAPA_TILE_STOPS.length - 1].rgb;
+}
+function mapaTextColorFor(rgb) {
+    const lum = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
+    return lum > 0.58 ? '#1a1810' : '#ffffff';
+}
+
+// Severidade da "nuvem" do mapa nacional — mesmas faixas do rótulo
+// (Atenção/Alerta/Crítico), com piso de opacidade no topo de cada faixa
+// para nao esmaecer perto de 100%.
+function mapaSeverity(pct) { return Math.max(0, Math.min(1, (100 - pct) / 100)); }
+
+const MAPA_SEV_BANDS = [
+    { hi: 100, lo: 80, top: [255, 205, 20, 0.46], bot: [255, 170, 0, 0.58] },
+    { hi: 80, lo: 50, top: [255, 140, 0, 0.62], bot: [255, 90, 0, 0.76] },
+    { hi: 50, lo: 0, top: [235, 40, 20, 0.82], bot: [139, 0, 0, 0.96] },
+];
+function mapaSeverityColorFromPct(pct) {
+    if (pct >= 100) return null;
+    const p = Math.max(0, pct);
+    const band = MAPA_SEV_BANDS.find(b => p >= b.lo && p < b.hi) || MAPA_SEV_BANDS[MAPA_SEV_BANDS.length - 1];
+    const t = (band.hi - p) / (band.hi - band.lo);
+    return [0, 1, 2, 3].map(i => band.top[i] + (band.bot[i] - band.top[i]) * t);
+}
+function mapaBandInfo(pct) {
+    if (pct >= 100) return { label: 'Meta atingida', color: '#4caf50' };
+    if (pct >= 80) return { label: 'Atenção', color: '#e0ac00' };
+    if (pct >= 50) return { label: 'Alerta', color: '#ff6a00' };
+    return { label: 'Crítico', color: '#e61414' };
+}
+
+function processAndRenderMapaEstados(polosData) {
+    if (typeof BR_STATE_PATHS === 'undefined') {
+        return console.warn('br_state_paths.js não carregado — Mapa de Alerta desativado.');
+    }
+
+    const porEstado = {};
+    polosData.filter(isLinhaPoloValida).forEach(row => {
+        const item = buildPolosRow(row);
+        const uf = (item.estado || '').toString().trim().toUpperCase();
+        if (!uf) return;
+        (porEstado[uf] = porEstado[uf] || []).push(item);
+    });
+
+    mapaEstadoData = {};
+    Object.keys(BR_STATE_PATHS).forEach(uf => {
+        const itens = porEstado[uf] || [];
+        if (itens.length === 0) {
+            mapaEstadoData[uf] = {
+                uf, nome: MAPA_ESTADO_NOMES[uf] || uf, cidades: [], hasData: false,
+                inscritos: 0, metaInsc: 0, pctInsc: 0, matriculados: 0, metaMatr: 0, pctMatr: 0,
+            };
+            return;
+        }
+
+        const tot = itens.reduce((acc, it) => {
+            acc.inscritos += it.inscritos; acc.metaInsc += it.metaMovelInsc;
+            acc.matriculados += it.matriculados; acc.metaMatr += it.metaMovelMatr;
+            return acc;
+        }, { inscritos: 0, metaInsc: 0, matriculados: 0, metaMatr: 0 });
+
+        const cidades = itens.map(it => ({
+            polo: it.polo, carteira: it.carteira, analista: it.analista,
+            inscritos: it.inscritos, metaInsc: it.metaMovelInsc, pctInsc: it.pctMovelInsc,
+            matriculados: it.matriculados, metaMatr: it.metaMovelMatr, pctMatr: it.pctMovelMatr,
+        })).sort((a, b) => a.polo.localeCompare(b.polo));
+
+        mapaEstadoData[uf] = {
+            uf, nome: MAPA_ESTADO_NOMES[uf] || uf, cidades, hasData: true,
+            inscritos: tot.inscritos, metaInsc: tot.metaInsc,
+            pctInsc: tot.metaInsc > 0 ? (tot.inscritos / tot.metaInsc) * 100 : 0,
+            matriculados: tot.matriculados, metaMatr: tot.metaMatr,
+            pctMatr: tot.metaMatr > 0 ? (tot.matriculados / tot.metaMatr) * 100 : 0,
+        };
+    });
+
+    mapaBuildBaseSvg();
+    mapaRenderBandSummary();
+    mapaRenderCloud();
+}
+
+function mapaBuildBaseSvg() {
+    if (mapaSvgConstruido) return;
+    const brSvg = document.getElementById('mapaBrSvg');
+    const labelsSvg = document.getElementById('mapaLabelsSvg');
+    const statesLayer = document.getElementById('mapaStatesLayer');
+    const labelsLayer = document.getElementById('mapaLabelsLayer');
+    if (!brSvg || !statesLayer) return;
+
+    const svgNS = 'http://www.w3.org/2000/svg';
+    brSvg.setAttribute('viewBox', `0 0 ${BR_VIEWBOX_W} ${BR_VIEWBOX_H}`);
+    labelsSvg.setAttribute('viewBox', `0 0 ${BR_VIEWBOX_W} ${BR_VIEWBOX_H}`);
+
+    Object.keys(BR_STATE_PATHS).forEach(uf => {
+        const d = BR_STATE_PATHS[uf];
+        if (!d) return;
+
+        const path = document.createElementNS(svgNS, 'path');
+        path.setAttribute('d', d);
+        path.setAttribute('class', 'uf-path');
+        path.dataset.uf = uf;
+        path.addEventListener('mouseenter', e => mapaShowTooltip(e, uf));
+        path.addEventListener('mousemove', e => mapaPositionTooltip(e));
+        path.addEventListener('mouseleave', mapaHideTooltip);
+        path.addEventListener('click', () => mapaOpenModal(uf));
+        statesLayer.appendChild(path);
+
+        const pos = BR_STATE_LABEL_POS[uf];
+        if (pos) {
+            const text = document.createElementNS(svgNS, 'text');
+            text.setAttribute('x', pos[0]);
+            text.setAttribute('y', pos[1]);
+            text.setAttribute('class', 'uf-label');
+            text.textContent = uf;
+            labelsLayer.appendChild(text);
+        }
+    });
+
+    mapaSvgConstruido = true;
+}
+
+function mapaRenderBandSummary() {
+    const el = document.getElementById('mapaBandSummary');
+    if (!el) return;
+    const estados = Object.values(mapaEstadoData).filter(d => d.hasData);
+    const bands = [
+        { label: 'Meta atingida (≥100%)', swatchClass: 'ok', test: d => mapaGetMetric(d).pct >= 100 },
+        { label: 'Atenção (80–99%)', color: 'var(--sev-atencao)', test: d => mapaGetMetric(d).pct >= 80 && mapaGetMetric(d).pct < 100 },
+        { label: 'Alerta (50–79%)', color: 'var(--sev-alerta)', test: d => mapaGetMetric(d).pct >= 50 && mapaGetMetric(d).pct < 80 },
+        { label: 'Crítico (<50%)', color: 'var(--sev-critico)', test: d => mapaGetMetric(d).pct < 50 },
+    ];
+    el.innerHTML = bands.map(b => {
+        const n = estados.filter(b.test).length;
+        const swatch = b.swatchClass
+            ? `<span class="band-swatch ${b.swatchClass}"></span>`
+            : `<span class="band-swatch" style="background:${b.color}"></span>`;
+        return `<div class="band-chip">${swatch}${b.label}: <strong>${n}</strong></div>`;
+    }).join('');
+}
+
+function mapaPositionTooltip(e) {
+    const tooltip = document.getElementById('mapaTooltip');
+    const pad = 14;
+    let x = e.clientX + pad, y = e.clientY + pad;
+    const rect = tooltip.getBoundingClientRect();
+    if (x + rect.width > window.innerWidth) x = e.clientX - rect.width - pad;
+    if (y + rect.height > window.innerHeight) y = e.clientY - rect.height - pad;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+}
+function mapaHideTooltip() {
+    const tooltip = document.getElementById('mapaTooltip');
+    if (tooltip) tooltip.classList.remove('visible');
+}
+function mapaShowTooltip(e, uf) {
+    const d = mapaEstadoData[uf];
+    const tooltip = document.getElementById('mapaTooltip');
+    if (!d || !tooltip) return;
+
+    if (!d.hasData) {
+        tooltip.innerHTML = `
+            <div class="tt-title">${d.nome}</div>
+            <div class="tt-hint">Sem polos cadastrados para este estado.</div>
+        `;
+        tooltip.classList.add('visible');
+        mapaPositionTooltip(e);
+        return;
+    }
+
+    const m = mapaGetMetric(d);
+    const band = mapaBandInfo(m.pct);
+    tooltip.innerHTML = `
+        <div class="tt-title">${d.nome}</div>
+        <div class="tt-badge" style="background:${band.color}">${band.label}</div>
+        <div class="tt-row"><span>${m.singular}</span><b>${formatBRInteger(m.value)}</b></div>
+        <div class="tt-row"><span>Meta móvel</span><b>${formatBRInteger(m.meta)}</b></div>
+        <div class="tt-row"><span>Atingimento</span><b>${formatBRPctDirect(m.pct)}</b></div>
+        <div class="tt-hint">Clique para ver os polos por cidade</div>
+    `;
+    tooltip.classList.add('visible');
+    mapaPositionTooltip(e);
+}
+
+function mapaRenderCloud() {
+    const visible = document.getElementById('mapaCloudCanvas');
+    if (!visible) return;
+    const w = BR_VIEWBOX_W, h = Math.round(BR_VIEWBOX_H);
+    visible.width = w; visible.height = h;
+    const ctx = visible.getContext('2d');
+    ctx.clearRect(0, 0, w, h);
+    ctx.globalCompositeOperation = 'lighter';
+
+    Object.keys(mapaEstadoData).forEach(uf => {
+        const d = mapaEstadoData[uf];
+        if (!d.hasData) return;
+
+        const pct = mapaGetMetric(d).pct;
+        const color = mapaSeverityColorFromPct(pct);
+        if (!color) return;
+
+        const s = mapaSeverity(pct);
+        const bbox = BR_STATE_BBOX[uf];
+        const bw = bbox[2] - bbox[0], bh = bbox[3] - bbox[1];
+        const baseRadius = Math.max(42, Math.min(130, 0.55 * Math.sqrt(bw * bh)));
+        const radius = baseRadius * (0.72 + 0.4 * s);
+
+        const [cx, cy] = BR_STATE_LABEL_POS[uf];
+        const [r, g, b, a] = color;
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+        grad.addColorStop(0, `rgba(${r},${g},${b},${a})`);
+        grad.addColorStop(0.7, `rgba(${r},${g},${b},${a * 0.55})`);
+        grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.fill();
+    });
+}
+
+function mapaStatPctColor(pct) {
+    if (pct >= 100) return 'var(--verde-ok)';
+    if (pct >= 80) return 'var(--sev-atencao)';
+    if (pct >= 50) return 'var(--sev-alerta)';
+    return 'var(--sev-critico)';
+}
+
+function mapaBuildCityTile(c) {
+    const m = mapaGetMetric(c);
+    const rgb = mapaHeatRGB(m.pct);
+    const color = `rgb(${rgb.join(',')})`;
+    const text = mapaTextColorFor(rgb);
+    const div = document.createElement('div');
+    div.className = 'heat-tile';
+    div.style.background = color;
+    div.style.color = text;
+    div.title = `${c.polo} — ${formatBRInteger(m.value)}/${formatBRInteger(m.meta)} ${m.singular.toLowerCase()} (${formatBRPctDirect(m.pct)})`;
+    div.innerHTML = `
+        <span class="heat-tile-name">${c.polo}</span>
+        <span class="heat-tile-pct">${formatBRPctDirect(m.pct)}</span>
+        <span class="heat-tile-frac">${formatBRInteger(m.value)} / ${formatBRInteger(m.meta)}</span>
+    `;
+    return div;
+}
+
+function mapaOpenModal(uf) {
+    const d = mapaEstadoData[uf];
+    const backdrop = document.getElementById('mapaModalBackdrop');
+    if (!d || !backdrop) return;
+
+    const m = mapaGetMetric(d);
+    document.getElementById('mapaModalTitle').textContent = d.nome;
+    document.getElementById('mapaModalSubtitle').textContent = d.hasData
+        ? `${d.cidades.length} polo(s) com dados`
+        : 'Nenhum polo cadastrado';
+    document.getElementById('mapaModalCitiesLabel').textContent = `Polos por cidade — ${m.label}`;
+
+    const summaryEl = document.getElementById('mapaModalSummary');
+    summaryEl.innerHTML = d.hasData ? `
+        <div class="modal-stat">
+            <div class="modal-stat-label">${m.label} — total do estado</div>
+            <div class="modal-stat-row">
+                <span class="modal-stat-value">${formatBRInteger(m.value)}</span>
+                <span class="modal-stat-of">/ ${formatBRInteger(m.meta)} meta móvel</span>
+                <span class="modal-stat-pct" style="color:${mapaStatPctColor(m.pct)}">${formatBRPctDirect(m.pct)}</span>
+            </div>
+        </div>
+    ` : '';
+
+    const grid = document.getElementById('mapaModalGrid');
+    if (!d.hasData || d.cidades.length === 0) {
+        grid.innerHTML = '<p class="polos-empty" style="grid-column:1/-1;">Nenhum polo encontrado para este estado.</p>';
+    } else {
+        grid.innerHTML = '';
+        const ordenadas = [...d.cidades].sort((a, b) => mapaGetMetric(a).pct - mapaGetMetric(b).pct);
+        ordenadas.forEach(c => grid.appendChild(mapaBuildCityTile(c)));
+    }
+
+    backdrop.classList.add('open');
+}
+function mapaCloseModal() {
+    const backdrop = document.getElementById('mapaModalBackdrop');
+    if (backdrop) backdrop.classList.remove('open');
+}
+
+const MAPA_HEADER_TEXT = {
+    insc: {
+        title: 'Mapa de Alerta de Inscrições',
+        sub: 'Áreas destacadas em amarelo/laranja/vermelho indicam estados abaixo da Meta Móvel de Inscrição. Passe o mouse para ver os números; clique para abrir os polos por cidade.',
+    },
+    matr: {
+        title: 'Mapa de Alerta de Matrículas',
+        sub: 'Áreas destacadas em amarelo/laranja/vermelho indicam estados abaixo da Meta Móvel de Matrícula. Passe o mouse para ver os números; clique para abrir os polos por cidade.',
+    },
+};
+
+function mapaSetMetric(metric) {
+    if (metric === mapaMetricaAtual) return;
+    mapaMetricaAtual = metric;
+
+    document.querySelectorAll('.metric-toggle-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.metric === metric);
+    });
+    document.getElementById('mapaTitle').textContent = MAPA_HEADER_TEXT[metric].title;
+    document.getElementById('mapaSubtitle').textContent = MAPA_HEADER_TEXT[metric].sub;
+
+    mapaRenderBandSummary();
+    mapaRenderCloud();
+    mapaCloseModal();
+}
+
+function initMapaAlertaControls() {
+    document.querySelectorAll('.metric-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', () => mapaSetMetric(btn.dataset.metric));
+    });
+    const backdrop = document.getElementById('mapaModalBackdrop');
+    const closeBtn = document.getElementById('mapaModalClose');
+    if (closeBtn) closeBtn.addEventListener('click', mapaCloseModal);
+    if (backdrop) backdrop.addEventListener('click', e => { if (e.target === backdrop) mapaCloseModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') mapaCloseModal(); });
+}
+
+// ==========================================
 // INICIALIZAÇÃO
 // ==========================================
 async function initDashboardInscricoes() {
     console.log('Iniciando Dashboard de Inscrições...');
+    initMapaAlertaControls();
+
     const consolidadoData = await fetchSheetData(GID_CAPTACAO_CONSOLIDADO);
     if (consolidadoData.length > 0) {
         processAndRenderTopKPIs(consolidadoData);
@@ -1152,6 +1522,7 @@ async function initDashboardInscricoes() {
         processAndRenderRegioes(polosData);
         processAndRenderEstados(polosData)
         processAndRenderPolosDetalhe(polosData);
+        processAndRenderMapaEstados(polosData);
     }
 
     const now = new Date();
